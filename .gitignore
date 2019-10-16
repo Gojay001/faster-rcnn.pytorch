@@ -1,4 +1,7 @@
 data/*
+output/*
+models/*
+images/*
 
 # READ THIS BEFORE YOU REFACTOR ME
 #
