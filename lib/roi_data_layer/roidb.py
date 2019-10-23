@@ -36,7 +36,8 @@ def prepare_roidb(imdb):
         pickle.dump(sizes, f)
       print('Done!!')
          
-  for i in range(len(imdb.image_index)):
+  # changed roidb length by deleting none boxes
+  for i in range(len(imdb.gt_roidb())):
     roidb[i]['img_id'] = imdb.image_id_at(i)
     roidb[i]['image'] = imdb.image_path_at(i)
     if not (imdb.name.startswith('coco')):
@@ -107,7 +108,7 @@ def combined_roidb(imdb_names, training=True):
     """Returns a roidb (Region of Interest database) for use in training."""
     if cfg.TRAIN.USE_FLIPPED:
       print('Appending horizontally-flipped training examples...')
-      imdb.append_flipped_images()
+      # imdb.append_flipped_images()  # do not filp images
       print('done')
 
     print('Preparing training data...')

@@ -8,6 +8,7 @@ from __future__ import absolute_import
 # --------------------------------------------------------
 
 import xml.dom.minidom as minidom
+import pdb
 
 import os
 # import PIL
@@ -51,9 +52,9 @@ class pascal_voc(imdb):
         #                  'cow', 'diningtable', 'dog', 'horse',
         #                  'motorbike', 'person', 'pottedplant',
         #                  'sheep', 'sofa', 'train', 'tvmonitor')
-        self._classes = ('__background__', 'head')
+        self._classes = ('__background__', 'head')  # own label class
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
-        self._image_ext = '.jpg'
+        self._image_ext = '.jpeg'  # ext name of image
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
         # self._roidb_handler = self.selective_search_roidb
@@ -131,6 +132,15 @@ class pascal_voc(imdb):
 
         gt_roidb = [self._load_pascal_annotation(index)
                     for index in self.image_index]
+        
+        # delete roidb with none boxes
+        i = 0
+        while i < len(gt_roidb):
+            if gt_roidb[i]['bbox_none'] != 0:
+                del gt_roidb[i]
+                i -= 1
+            i += 1
+
         with open(cache_file, 'wb') as fid:
             pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
         print('wrote gt roidb to {}'.format(cache_file))
@@ -231,11 +241,19 @@ class pascal_voc(imdb):
         # Load object bounding boxes into a data frame.
         for ix, obj in enumerate(objs):
             bbox = obj.find('bndbox')
+
+            # find none bbox and set its index as "bbox_none"
+            bbox_none = 0
+            if bbox is None:
+                print("None boxes:=====", index)
+                bbox_none = index
+                continue
+
             # Make pixel indexes 0-based
-            x1 = float(bbox.find('xmin').text) - 1
-            y1 = float(bbox.find('ymin').text) - 1
-            x2 = float(bbox.find('xmax').text) - 1
-            y2 = float(bbox.find('ymax').text) - 1
+            x1 = max(float(bbox.find('xmin').text) - 1, 0)
+            y1 = max(float(bbox.find('ymin').text) - 1, 0)
+            x2 = max(float(bbox.find('xmax').text) - 1, 0)
+            y2 = max(float(bbox.find('ymax').text) - 1, 0)
 
             diffc = obj.find('difficult')
             difficult = 0 if diffc == None else int(diffc.text)
@@ -254,7 +272,8 @@ class pascal_voc(imdb):
                 'gt_ishard': ishards,
                 'gt_overlaps': overlaps,
                 'flipped': False,
-                'seg_areas': seg_areas}
+                'seg_areas': seg_areas,
+                'bbox_none': bbox_none}
 
     def _get_comp_id(self):
         comp_id = (self._comp_id + '_' + self._salt if self.config['use_salt']
